@@ -148,8 +148,9 @@ char * OAuthSign(const char * url, char ** postArgs, char * consumerKey, char * 
 size_t CurlWriteData(void *buffer, size_t size, size_t count, void *userData)
 {
 	// buffer is not null terminated..
-	char * outBuffer = malloc((size * count) + 1);
+	char * outBuffer = malloc((size * count) + 2);
 	memcpy(outBuffer, buffer, size * count);
+	outBuffer[(size * count) - 1] = '&';
 	outBuffer[size * count] = '\0';
 
 	if(appStage == APP_STAGE_AUTHORIZE)
@@ -183,27 +184,25 @@ size_t CurlWriteData(void *buffer, size_t size, size_t count, void *userData)
 
 void GetTokenAndSecret(char * input, char * token, char * secret, char * user)
 {
-	char parts[4][64];
-	int i = 0;
+	char * part = strtok(input, "=");
 
-	char * part = strtok(input, "&");
-
-	for(i = 0; i < 4; i++)
+	while(part)
 	{
-		if(!part)
+		if(!strcmp(part, "oauth_token"))
 		{
-			break;
+			sprintf(token, "%s", strtok(NULL, "&"));
 		}
-		
-		sprintf(parts[i], "%s", part);
+		else if(!strcmp(part, "oauth_token_secret"))
+		{
+			sprintf(secret, "%s", strtok(NULL, "&"));
+		}
+		else if(user && !strcmp(part, "uid"))
+		{
+			sprintf(user, "%s", strtok(NULL, "&"));
+		}
+
+		part = strtok(NULL, "=");
 	}
-	split = (strstr(input, "&oauth_token") - input);
-	strncpy(secret, input, split);
-
-	strncpy(token, input + split, strlen(input) - split);
-
-	sprintf(secret, "%s", strstr(secret, "=") + 1);
-	sprintf(token, "%s", strstr(token, "=") + 1);
 }
 
 void SaveAccessTokens()
@@ -212,7 +211,7 @@ void SaveAccessTokens()
 	
 	if(pFile)
 	{
-		fprintf(pFile, "%s s", accessToken, accessTokenSecret, userID);
+		fprintf(pFile, "%s %s %s", accessToken, accessTokenSecret, userID);
 		fclose(pFile);
 	}
 }
@@ -223,12 +222,12 @@ int LoadAccessTokens()
 
 	if(pFile)
 	{
-		fscanf(pFile, "%s s", accessToken, accessTokenSecret);
+		fscanf(pFile, "%s %s %s", accessToken, accessTokenSecret, userID);
 		fclose(pFile);
 
 		if(DEBUG_OUT)
 		{
-			printf("Loaded tokens: %s - %s\n\n", accessToken, accessTokenSecret);
+			printf("Loaded tokens: %s - %s - %s\n\n", accessToken, accessTokenSecret, userID);
 		}
 
 		return 1;
