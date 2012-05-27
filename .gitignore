@@ -1,4 +1,5 @@
 tokens
 DBSettings.h
 boxcurl
+*.swp
 !.gitignore
