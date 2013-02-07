@@ -22,6 +22,8 @@ void GetTokenAndSecret(char * input, char * token, char * secret, char * userId)
 void SaveAccessTokens();
 int LoadAccessTokens();
 
+int GetAccountInformation();
+
 typedef enum
 {
 	APP_STAGE_AUTHORIZE,
@@ -58,6 +60,15 @@ int main(char ** argc, int argv)
 			printf("\ncurl error:\n%s\n", curlErrorBuffer);	
 		}
 	}
+	else
+	{
+		appStage = APP_STAGE_AUTHORIZED;
+	}
+
+	GetAccountInformation();
+
+	getchar();
+
 
 	CleanUp();
 
@@ -109,6 +120,8 @@ int Authenticate()
 
 	if(curl_easy_perform(pCurl))
 	{
+		free(postArgs);
+		free(signedURL);
 		return 0;
 	}
 
@@ -134,8 +147,15 @@ int Authenticate()
 
 	if(curl_easy_perform(pCurl))
 	{
+		free(postArgs);
+		free(signedURL);
 		return 0;
 	}
+
+	appStage = APP_STAGE_WORKING;
+
+	free(postArgs);
+	free(signedURL);
 
 	return 1;	
 }
@@ -162,7 +182,7 @@ size_t CurlWriteData(void *buffer, size_t size, size_t count, void *userData)
 			printf("%s\n%s\n%s\n\n", outBuffer, oauthTokenSecret, oauthToken);
 		}
 
-		printf("Please paste this URL into a browser and follow the instructions to authorize this application:\n%s?%s\n\n", APP_USER_AUTH_URL, outBuffer);
+		printf("Please paste this URL into a browser and follow the instructions to authorize this application:\n%s?oauth_token=%s\n\n", APP_USER_AUTH_URL, oauthToken);
 	}
 	else if(appStage == APP_STAGE_AUTHORIZED)
 	{
@@ -174,6 +194,10 @@ size_t CurlWriteData(void *buffer, size_t size, size_t count, void *userData)
 		}
 
 		SaveAccessTokens();
+	}
+	else if(appStage == APP_STAGE_WORKING)
+	{
+		printf("%s\n\n", outBuffer);
 	}
 
 	free(outBuffer);
@@ -234,4 +258,25 @@ int LoadAccessTokens()
 	}
 
 	return 0;
+}
+
+int GetAccountInformation()
+{
+	char * postArgs = NULL;
+	char * signedURL = OAuthSign(APP_ACCOUNT_INFO_URL, &postArgs, OAUTH_KEY, OAUTH_SECRET, accessToken, accessTokenSecret);
+
+	curl_easy_reset(pCurl);
+
+	curl_easy_setopt(pCurl, CURLOPT_URL, signedURL);
+	curl_easy_setopt(pCurl, CURLOPT_POSTFIELDS, postArgs);
+	curl_easy_setopt(pCurl, CURLOPT_ERRORBUFFER, curlErrorBuffer);
+	curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYPEER, 0);
+	curl_easy_setopt(pCurl, CURLOPT_WRITEFUNCTION, CurlWriteData);
+
+	if(curl_easy_perform(pCurl))
+	{
+		return 0;
+	}
+
+	return 1;
 }
