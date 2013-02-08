@@ -170,12 +170,11 @@ size_t CurlWriteData(void *buffer, size_t size, size_t count, void *userData)
 {
 	// buffer is not null terminated..
 
-	 chopping off a char here!!!
 	printf("Buffer:\n%s\n", (char *)buffer);
 	char * outBuffer = malloc((size * count) + 2);
 	memcpy(outBuffer, buffer, size * count);
-	outBuffer[(size * count) - 1] = '&';
-	outBuffer[size * count] = '\0';
+	outBuffer[size * count] = '&';
+	outBuffer[(size * count) + 1] = '\0';
 
 	if(appStage == APP_STAGE_AUTHORIZE)
 	{
