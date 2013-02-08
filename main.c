@@ -117,6 +117,7 @@ int Authenticate()
 	curl_easy_setopt(pCurl, CURLOPT_ERRORBUFFER, curlErrorBuffer);
 	curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYPEER, 0);
 	curl_easy_setopt(pCurl, CURLOPT_WRITEFUNCTION, CurlWriteData);
+	// curl_easy_setopt(pCurl, CURLOPT_VERBOSE, 1);
 
 	if(curl_easy_perform(pCurl))
 	{
@@ -168,6 +169,9 @@ char * OAuthSign(const char * url, char ** postArgs, char * consumerKey, char * 
 size_t CurlWriteData(void *buffer, size_t size, size_t count, void *userData)
 {
 	// buffer is not null terminated..
+
+	 chopping off a char here!!!
+	printf("Buffer:\n%s\n", (char *)buffer);
 	char * outBuffer = malloc((size * count) + 2);
 	memcpy(outBuffer, buffer, size * count);
 	outBuffer[(size * count) - 1] = '&';
@@ -208,10 +212,15 @@ size_t CurlWriteData(void *buffer, size_t size, size_t count, void *userData)
 
 void GetTokenAndSecret(char * input, char * token, char * secret, char * user)
 {
-	char * part = strtok(input, "=");
+	char * part;
+
+	printf("input: %s", input);
+	part = strtok(input, "=");
+
 
 	while(part)
 	{
+		printf("%s\n", part);
 		if(!strcmp(part, "oauth_token"))
 		{
 			sprintf(token, "%s", strtok(NULL, "&"));
@@ -280,3 +289,4 @@ int GetAccountInformation()
 
 	return 1;
 }
+
